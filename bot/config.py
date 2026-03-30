@@ -1,19 +1,21 @@
 from os import environ as env
 
 class Telegram:
-    API_ID = int(env.get("TELEGRAM_API_ID", 12345))
-    API_HASH = env.get("TELEGRAM_API_HASH", "xyz")
-    OWNER_ID = int(env.get("OWNER_ID", 5530237028))
+    # Aapki direct details yahan set kar di hain
+    API_ID = 32540406
+    API_HASH = "ea63215cc52356b39dee38ac14767218"
+    OWNER_ID = int(env.get("OWNER_ID", 5530237028)) # Isko apni Telegram ID se change kar sakte hain
     ALLOWED_USER_IDS = env.get("ALLOWED_USER_IDS", "").split()
-    BOT_USERNAME = env.get("TELEGRAM_BOT_USERNAME", "BotFather")
-    BOT_TOKEN = env.get("TELEGRAM_BOT_TOKEN", "1234567:xyz")
-    CHANNEL_ID = int(env.get("TELEGRAM_CHANNEL_ID", -100123456789))
-    SECRET_CODE_LENGTH = int(env.get("SECRET_CODE_LENGTH", 24))
+    BOT_USERNAME = "soomi2_bot" # Aapke naye bot ka username
+    BOT_TOKEN = "8624171834:AAEkNjC7FWWbr4LpefGx99uPSPWOosnnGBQ"
+    CHANNEL_ID = -1003375031883 # Aapke private channel ki ID
+    SECRET_CODE_LENGTH = 24
 
 class Server:
-    BASE_URL = env.get("BASE_URL", "http://127.0.0.1:8080")
-    BIND_ADDRESS = env.get("BIND_ADDRESS", "0.0.0.0")
-    PORT = int(env.get("PORT", 8080))
+    # Hugging Face ke mutabiq server settings (Yeh lazmi hain)
+    BASE_URL = "https://somi5765-somi.hf.space" # Aapke HF Space ka direct link
+    BIND_ADDRESS = "0.0.0.0"
+    PORT = 7860 # Hugging Face par hamesha 7860 port lagta hai, yeh 8080 par nahi chalta!
 
 # LOGGING CONFIGURATION
 LOGGER_CONFIG_JSON = {
@@ -42,7 +44,7 @@ LOGGER_CONFIG_JSON = {
         },
         'uvicorn.error': {
             'level': 'WARNING',
-            'handlers': ['file_handler', 'stream_handler']
+            'handlers':['file_handler', 'stream_handler']
         },
         'bot': {
             'level': 'INFO',
