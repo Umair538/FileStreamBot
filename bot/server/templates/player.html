@@ -8,9 +8,12 @@
 
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
 
-    <!-- Google IMA SDK (Ads chalane ke liye zaroori script) -->
+    <!-- Google IMA SDK -->
     <script src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    
+    <!-- 🔥 HLS.JS ADD KIYA GAYA HAI TAAKE DUAL AUDIO CHAL SAKE 🔥 -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <style>
       html, body { margin: 0; height: 100%; background-color: #000; }
@@ -20,7 +23,7 @@
       .plyr__volume { max-width: initial; min-width: initial; width: auto; position: relative; }
       .plyr, .plyr__video-wrapper, .plyr__video-embed iframe { height: 100%; }
 
-      /* ðŸ”¥ BEAUTIFUL CUSTOM PROGRESS / LOADER SPINNER ðŸ”¥ */
+      /* BEAUTIFUL CUSTOM PROGRESS / LOADER SPINNER */
       .custom-loader {
         position: absolute;
         top: 50%;
@@ -29,7 +32,7 @@
         width: 60px;
         height: 60px;
         border: 4px solid rgba(255, 255, 255, 0.2);
-        border-top: 4px solid #00e5ff; /* Cyan glowing color */
+        border-top: 4px solid #00e5ff;
         border-radius: 50%;
         animation: spin 1s linear infinite;
         z-index: 100;
@@ -43,39 +46,65 @@
         100% { transform: translate(-50%, -50%) rotate(360deg); }
       }
 
-      /* Hide default Plyr loader */
       .plyr--loading .plyr__video-wrapper::before,
       .plyr--loading .plyr__video-wrapper::after {
         display: none !important;
+      }
+
+      /* 🔥 CUSTOM AUDIO LANGUAGE SWITCHER BUTTONS 🔥 */
+      #audio-switcher {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: none; /* By default hide rahega jab tak track detect na ho */
+      }
+      
+      .audio-btn {
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        border: 2px solid #00e5ff;
+        border-radius: 6px;
+        padding: 6px 12px;
+        margin-left: 8px;
+        cursor: pointer;
+        font-family: Arial, sans-serif;
+        font-size: 13px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+      }
+      
+      .audio-btn:hover { background: rgba(0, 229, 255, 0.2); }
+      .audio-btn.active {
+        background: #00e5ff;
+        color: #000;
+        box-shadow: 0 0 10px #00e5ff;
       }
     </style>
   </head>
 
   <body>
-    <!-- PIP Mode disable karne ke liye disablePictureInPicture attribute add kiya gaya hai -->
-    <video id="stream-media" controls preload="auto" disablePictureInPicture controlsList="nodownload">
-      <source src="" type="">
-      <p class="vjs-no-js">
-        To view this video please enable JavaScript, and consider upgrading to a web browser that supports HTML5 video
-      </p>
-    </video>
+    <!-- <video> se <source> tag nikal diya hai taake JS isay handle kar sake -->
+    <video id="stream-media" controls preload="auto" disablePictureInPicture controlsList="nodownload"></video>
+
+    <!-- Audio Switcher Container -->
+    <div id="audio-switcher"></div>
 
     <div id="error-message"></div>
 
     <script>
-      var player = new Plyr('#stream-media', {
-          // Controls se pip nikal diya gaya hai
+      var video = document.getElementById('stream-media');
+      
+      var player = new Plyr(video, {
           controls:['play-large', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'mute', 'settings', 'fullscreen'],
           settings: ['speed','loop'],
-          speed: { selected: 1, options:[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
+          speed: { selected: 1, options:[0.25, 0.5, 0.75, 1, 1.25, 1.75, 2] },
           seek: 10,
           keyboard: { focused: true, global: true },
           
-          // ðŸ”¥ VAST ADS KI SETTINGS ðŸ”¥
           ads: {
               enabled: true,
               publisherId: 'youtube-style-ads',
-              // Har 20 minutes bad (Mid-roll) ad chalane ke liye aapko VAST ki jagah 'VMAP' link ka use karna chahiye jisme 20-min ke breaks set hon.
               tagUrl: 'YAHAN_APNA_VAST_YA_VMAP_TAG_LINK_PASTE_KAREIN' 
           }
       });
@@ -83,43 +112,81 @@
       var mediaLink = "{{ mediaLink }}";
 
       if (mediaLink) {
-          document.querySelector('#stream-media source').setAttribute('src', mediaLink);
           
-          // --- Custom Beautiful Spinner Logic ---
+          // 🔥 HLS (.m3u8) DUAL AUDIO LOGIC 🔥
+          if (mediaLink.includes('.m3u8')) {
+              if (Hls.isSupported()) {
+                  var hls = new Hls();
+                  hls.loadSource(mediaLink);
+                  hls.attachMedia(video);
+                  
+                  // Jab movie ka data load ho jaye tab check karein kitni languages hain
+                  hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                      var audioTracks = hls.audioTracks;
+                      
+                      // Agar 1 se zyada languages hain (e.g., Hindi aur English)
+                      if (audioTracks && audioTracks.length > 1) {
+                          var switcher = document.getElementById('audio-switcher');
+                          switcher.style.display = 'block'; // Buttons show karo
+                          
+                          audioTracks.forEach(function(track, index) {
+                              var btn = document.createElement('button');
+                              btn.className = 'audio-btn' + (index === 0 ? ' active' : '');
+                              // Track ka naam agar available nahi to 'Audio 1', 'Audio 2' rakhega
+                              btn.innerText = track.name || ('Audio ' + (index + 1));
+                              
+                              // Language switch karne ka function
+                              btn.onclick = function() {
+                                  hls.audioTrack = index; // HLS mein audio change kar dega
+                                  
+                                  // Button ke colors update karein
+                                  var allBtns = document.querySelectorAll('.audio-btn');
+                                  allBtns.forEach(function(b) { b.classList.remove('active'); });
+                                  btn.classList.add('active');
+                              };
+                              switcher.appendChild(btn);
+                          });
+                      }
+                  });
+              } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                  // Apple Safari Devices natively support karte hain
+                  video.src = mediaLink;
+              }
+          } else {
+              // Agar direct MP4 file hai (jis mein native web audio switch support nahi hota)
+              video.src = mediaLink;
+          }
+
+          // --- Custom Beautiful Spinner & Switcher Positioning Logic ---
           var spinner = document.createElement('div');
           spinner.className = 'custom-loader';
           
-          // Jab Plyr ready ho jaye tab spinner ko wrapper mein add karein
           player.on('ready', function() {
-              player.elements.container.querySelector('.plyr__video-wrapper').appendChild(spinner);
+              var container = player.elements.container;
+              
+              // Spinner ko wrapper mein daalein
+              container.querySelector('.plyr__video-wrapper').appendChild(spinner);
+              
+              // Audio Switcher ko player ke andar move karein taake Fullscreen par bhi nazar aaye
+              var switcher = document.getElementById('audio-switcher');
+              if (switcher) container.appendChild(switcher);
           });
 
-          // Video load ya buffer hone par spinner show karein
           player.on('waiting', function() { spinner.style.display = 'block'; });
           player.on('seeking', function() { spinner.style.display = 'block'; });
-          
-          // Video play hone par spinner hide karein
           player.on('playing', function() { spinner.style.display = 'none'; });
           player.on('canplay', function() { spinner.style.display = 'none'; });
           player.on('pause', function() { spinner.style.display = 'none'; });
-          // --------------------------------------
 
           // --- 20 Minute Ad Tracking Logic ---
           var lastAdTime = 0;
           player.on('timeupdate', function() {
               var currentTime = Math.floor(player.currentTime);
-              
-              // 1200 seconds = 20 minutes
-              // Agar video chalta hue 20 minutes guzar jayein:
               if (currentTime > 0 && currentTime % 1200 === 0 && (currentTime - lastAdTime) > 10) {
                   lastAdTime = currentTime;
                   console.log("20 Minute poore ho gaye!"); 
-                  
-                  // NOTE: Standard IMA SDK mein mid-rolls automatic VMAP ke zariye chalte hain.
-                  // Agar aapke paas koi custom function hai jo ad chalata hai tou wo yahan call kar sakte hain.
               }
           });
-          // ------------------------------------
 
       } else {
           document.getElementById('error-message').textContent = 'Error: Media URL not provided';
