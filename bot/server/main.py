@@ -14,6 +14,20 @@ async def home():
 
 @bp.route('/dl/<int:file_id>')
 async def transmit_file(file_id):
+    
+    # --- ANTI-CHOR SECURITY (Download Route) ---
+    allowed_website = "aapkiwebsite.com"  # Yahan apni website ka naam daalein (e.g., hdmovies.com)
+    bot_domain = request.host
+    
+    referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
+    
+    if referer:
+        if allowed_website not in referer and bot_domain not in referer:
+            return abort(403)
+    else:
+        return abort(403)
+    # --- SECURITY KHATAM ---
+
     file = await get_message(file_id) or abort(404)
     code = request.args.get('code') or abort(401)
     range_header = request.headers.get('Range')
@@ -79,5 +93,19 @@ async def transmit_file(file_id):
 
 @bp.route('/stream/<int:file_id>')
 async def stream_file(file_id):
+    
+    # --- ANTI-CHOR SECURITY (Stream Player Route) ---
+    allowed_website = "aapkiwebsite.com"  # Yahan apni website ka naam daalein (e.g., hdmovies.com)
+    bot_domain = request.host
+    
+    referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
+    
+    if referer:
+        if allowed_website not in referer and bot_domain not in referer:
+            return abort(403)
+    else:
+        return abort(403)
+    # --- SECURITY KHATAM ---
+
     code = request.args.get('code') or abort(401)
     return await render_template('player.html', mediaLink=f'{Server.BASE_URL}/dl/{file_id}?code={code}')
