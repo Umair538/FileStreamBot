@@ -16,7 +16,7 @@ async def home():
 async def transmit_file(file_id):
     
     # --- ANTI-CHOR SECURITY (Download Route) ---
-    allowed_website = "aapkiwebsite.com"  # Yahan apni website ka naam daalein (e.g., hdmovies.com)
+    allowed_website = "heyswan.elisa.supporthost.eu"  # Yahan apni website ka naam daalein (e.g., hdmovies.com)
     bot_domain = request.host
     
     referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
@@ -95,7 +95,7 @@ async def transmit_file(file_id):
 async def stream_file(file_id):
     
     # --- ANTI-CHOR SECURITY (Stream Player Route) ---
-    allowed_website = "aapkiwebsite.com"  # Yahan apni website ka naam daalein (e.g., hdmovies.com)
+    allowed_website = "heyswan.elisa.supporthost.eu"  # Yahan apni website ka naam daalein (e.g., hdmovies.com)
     bot_domain = request.host
     
     referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
