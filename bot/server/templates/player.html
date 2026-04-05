@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <style>
-      html, body { margin: 0; height: 100%; background-color: #000; }
+      html, body { margin: 0; height: 100%; background-color: #000; overflow: hidden; }
       #stream-media { height: 100%; width: 100%; }
       #error-message { color: red; font-size: 24px; text-align: center; margin-top: 20px; }
       
@@ -57,7 +57,7 @@
         top: 20px;
         right: 20px;
         z-index: 1000;
-        display: none; /* By default hide rahega jab tak track detect na ho */
+        display: none; 
       }
       
       .audio-btn {
@@ -80,6 +80,15 @@
         color: #000;
         box-shadow: 0 0 10px #00e5ff;
       }
+
+      /* 🔥 JS BANNER AD CONTAINER 🔥 */
+      #banner-ad-container {
+        position: absolute;
+        bottom: 70px; /* Player controls ke thoda sa upar rahega */
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 999;
+      }
     </style>
   </head>
 
@@ -89,6 +98,13 @@
 
     <!-- Audio Switcher Container -->
     <div id="audio-switcher"></div>
+
+    <!-- 🔥 AAPKA DIYA GAYA JS AD CODE YAHAN LAGA HAI 🔥 -->
+    <div id="banner-ad-container">
+        <script async type="application/javascript" src="https://a.magsrv.com/ad-provider.js"></script> 
+        <ins class="eas6a97888e37" data-zoneid="5891664"></ins> 
+        <script>(AdProvider = window.AdProvider ||[]).push({"serve": {}});</script>
+    </div>
 
     <div id="error-message"></div>
 
@@ -105,7 +121,10 @@
           ads: {
               enabled: true,
               publisherId: 'youtube-style-ads',
-              tagUrl: 'YAHAN_APNA_VAST_YA_VMAP_TAG_LINK_PASTE_KAREIN' 
+              // 🔥 VAST URL YAHAN LAGTA HAI 🔥
+              // Maine aapke zoneid ka VAST Link bana diya hai. Agar ye network issue kare toh 
+              // apne Ad Network se "VAST Tag URL" generate karein aur is link se replace kar dein:
+              tagUrl: 'https://syndication.exoclick.com/splash.php?idzone=5891664' 
           }
       });
 
@@ -170,6 +189,10 @@
               // Audio Switcher ko player ke andar move karein taake Fullscreen par bhi nazar aaye
               var switcher = document.getElementById('audio-switcher');
               if (switcher) container.appendChild(switcher);
+
+              // Ad Tag ko bhi player ke andar le jayein taake fullscreen mein bhi dikhe
+              var bannerAd = document.getElementById('banner-ad-container');
+              if (bannerAd) container.appendChild(bannerAd);
           });
 
           player.on('waiting', function() { spinner.style.display = 'block'; });
