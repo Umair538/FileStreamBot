@@ -3,79 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Video Player</title>
-    <!-- Plyr CSS -->
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <title>High Speed Movie Player</title>
     <style>
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
             background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             overflow: hidden;
         }
-        .container {
+        .artplayer-app {
             width: 100%;
-            max-width: 900px;
-        }
-        /* Hide context menu to prevent "Copy Video Address" */
-        video {
-            width: 100%;
-            height: auto;
+            height: 100vh;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <video id="player" playsinline controls disablePictureInPicture controlsList="nodownload">
-        <!-- Source is empty initially -->
-    </video>
-</div>
+    <div class="artplayer-app"></div>
 
-<!-- Plyr JS -->
-<script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <!-- ArtPlayer Library -->
+    <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
 
-<script>
-    (function() {
-        // 1. Get the encoded token from Python (Base64)
-        var _0x5f21 = "{{ token }}"; 
+    <script>
+        (function() {
+            // Masked Token from Python
+            var _rawToken = "{{ token }}"; 
 
-        // 2. Decode the link only inside this protected function
-        function getSource() {
-            return atob(_0x5f21);
-        }
+            // Function to decode link just before play
+            function _decodeSource(token) {
+                try {
+                    return atob(token);
+                } catch(e) {
+                    return "";
+                }
+            }
 
-        // 3. Initialize Player
-        const videoElement = document.getElementById('player');
-        const player = new Plyr(videoElement, {
-            controls: [
-                'play-large', 'play', 'progress', 'current-time', 
-                'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'
-            ],
-            keyboard: { focused: true, global: true }
-        });
+            // Initialize ArtPlayer
+            const art = new Artplayer({
+                container: '.artplayer-app',
+                url: _decodeSource(_rawToken),
+                type: 'mkv', // Support common movie formats
+                title: 'Streaming Movie...',
+                poster: '', 
+                volume: 0.7,
+                isLive: false,
+                muted: false,
+                autoplay: false,
+                pip: true,
+                autoSize: true,
+                autoMini: true,
+                screenshot: true,
+                setting: true,
+                loop: false,
+                flip: true,
+                playbackRate: true,
+                aspectRatio: true,
+                fullscreen: true,
+                fullscreenWeb: true,
+                subtitleOffset: true,
+                miniProgressBar: true,
+                mutex: true,
+                backdrop: true,
+                playsInline: true,
+                autoPlayback: true,
+                airplay: true,
+                theme: '#ff0000',
+                moreVideoAttr: {
+                    controlsList: 'nodownload', // Browser ka download button hide karega
+                    playsInline: true,
+                },
+                settings: [
+                    {
+                        width: 200,
+                        html: 'Video Quality',
+                        tooltip: 'Original',
+                    },
+                ],
+            });
 
-        // 4. Inject original link dynamically
-        videoElement.src = getSource();
+            // --- SECURITY: Disable Right Click & Inspect ---
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.onkeydown = function(e) {
+                if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) {
+                    return false;
+                }
+            };
 
-        // 5. Extra Security: Disable Right Click
-        document.addEventListener('contextmenu', event => event.preventDefault());
+            // Player Ready
+            art.on('ready', () => {
+                console.info('Player is ready for movie streaming');
+            });
 
-        // 6. Protect from Inspect Element
-        document.onkeydown = function(e) {
-            if(e.keyCode == 123) return false; // F12
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // View Source
-        };
-    })();
-</script>
-
+        })();
+    </script>
 </body>
 </html>
