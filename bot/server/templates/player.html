@@ -1,288 +1,446 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HeySwan Premium Player | All-Screen Fit</title>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-    
-    <style>
-        /* --- CORE RESPONSIVE SETUP --- */
-        :root {
-            --bg-navy: #0b1120;
-            --accent-cyan: #00d1ff;
-            --player-red: #ff0000;
-            --glass: rgba(11, 17, 32, 0.9);
-        }
+    <title>Play Files</title>
 
-        * {
-            box-sizing: border-box;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-Frame-Options" content="deny">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <!-- Scripts -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <!-- Google IMA SDK for VAST Ads -->
+    <script src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
+
+    <style>
+        html, body {
             margin: 0;
             padding: 0;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            height: 100%;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            -webkit-user-select: none; user-select: none; /* Security: Disable Text Select */
         }
 
-        /* Body occupies 100% of the viewport */
-        html, body {
+        #video-container {
+            position: relative;
             width: 100%;
             height: 100%;
-            background-color: #000; /* Pure black for video borders */
-            font-family: 'Inter', sans-serif;
-            overflow: hidden; /* No scrollbars */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #stream-media {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Ad Container */
+        #ad-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            display: none;
+            background-color: black;
+        }
+
+        /* ------------------------------------- */
+        /* STYLISH DUAL-RING LOADER              */
+        /* ------------------------------------- */
+        .stylish-loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            z-index: 105;
+            display: none; /* JS will handle this */
+        }
+
+        .stylish-loader::before, .stylish-loader::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 4px solid transparent;
+        }
+
+        .stylish-loader::before {
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-top-color: #00b3ff;
+            border-bottom-color: #00b3ff;
+            animation: spin 1.2s linear infinite;
+            box-shadow: 0 0 15px rgba(0, 179, 255, 0.4);
+        }
+
+        .stylish-loader::after {
+            top: 12px; left: 12px; right: 12px; bottom: 12px;
+            border-left-color: #ffffff;
+            border-right-color: #ffffff;
+            animation: spin 0.8s ease-in-out infinite reverse;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ------------------------------------- */
+        /* SLIM & TALL VOLUME POPUP              */
+        /* ------------------------------------- */
+        .custom-volume-control {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 90;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 8px 4px; 
+            width: 32px;      
+            box-sizing: border-box;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .volume-slider-wrapper {
+            width: 100%;
+            height: 0px;
+            overflow: hidden;
+            transition: height 0.4s ease, margin-bottom 0.4s ease;
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .custom-volume-control:hover .volume-slider-wrapper {
+            height: 180px; 
+            margin-bottom: 12px;
+        }
+
+        .volume-slider {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg);
+            width: 170px; 
+            height: 5px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00b3ff;
+            border: 2px solid #00b3ff;
+            transition: transform 0.1s;
+        }
+
+        .volume-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+        }
+
+        .volume-icon {
+            color: white;
+            font-size: 16px;
+            width: 24px;
+            height: 24px;
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: color 0.3s;
         }
 
-        /* --- ENTRANCE ANIMATION --- */
-        @keyframes slideInFromTop {
-            0% { transform: translateY(-100%); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
+        .custom-volume-control:hover .volume-icon {
+            color: #00b3ff;
         }
 
-        /* Container that fits any screen size */
-        .artplayer-app {
-            width: 100vw;
-            height: 100vh;
-            max-width: 100%;
-            max-height: 100%;
-            position: relative;
-            z-index: 1;
-            animation: slideInFromTop 0.9s cubic-bezier(0.19, 1, 0.22, 1) forwards;
-            background: #000;
-        }
-
-        /* --- HEYSWAN WATERMARK --- */
-        .heyswan-logo {
+        #error-message {
             position: absolute;
-            top: env(safe-area-inset-top, 20px); /* iPhone Notch Friendly */
-            left: env(safe-area-inset-left, 20px);
-            z-index: 50; 
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            pointer-events: none;
-            background: var(--glass);
-            padding: 8px 16px;
-            border-radius: 10px;
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 209, 255, 0.25);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-            transition: opacity 0.4s ease, transform 0.3s ease;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff4d4d;
+            font-size: 22px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-radius: 8px;
+            display: none;
+            z-index: 90;
         }
 
-        .heyswan-logo span {
-            color: var(--accent-cyan);
-            font-family: 'Poppins', sans-serif;
-            font-weight: 700;
-            font-size: clamp(12px, 4vw, 18px); /* Responsive Font */
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .heyswan-logo .dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--accent-cyan);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--accent-cyan);
-            animation: pulseFade 1.8s infinite;
-        }
-
-        @keyframes pulseFade {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.5); opacity: 0.4; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        /* --- PLAYER INTERFACE FIXES --- */
-
-        /* Video element must cover/fit the container */
-        .art-video {
-            object-fit: contain !important; /* Ensures no part of movie is cut */
-        }
-
-        /* Settings Panel UI Fix (Visible on all screens) */
-        .art-setting {
-            background: var(--glass) !important;
-            backdrop-filter: blur(20px);
-            border-radius: 12px !important;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            width: clamp(200px, 50vw, 300px) !important;
-            max-height: 80vh !important;
-            overflow-y: auto !important;
-        }
-
-        /* Custom Progress Bar (Red like Screenshot) */
-        .art-progress-played { background: var(--player-red) !important; }
-        .art-progress-indicator { background: var(--player-red) !important; box-shadow: 0 0 12px var(--player-red); }
-
-        /* VAST Ad Design */
-        .art-ads-skip {
-            background: var(--accent-cyan) !important;
-            color: #000 !important;
-            border: none !important;
-            font-weight: bold !important;
-            padding: 8px 20px !important;
-            border-radius: 4px !important;
-            bottom: 60px !important;
-        }
-
-        /* Hide watermark when controls are hidden */
-        .art-video-control-hide .heyswan-logo {
-            opacity: 0.3;
-            transform: translateY(-5px);
-        }
-
-        /* Small Screen Adjustments */
-        @media (max-width: 480px) {
-            .heyswan-logo {
-                padding: 5px 10px;
-                top: 10px;
-                left: 10px;
-            }
+        .plyr, .plyr__video-wrapper, .plyr__video-embed iframe {
+            height: 100%;
+            width: 100%;
         }
     </style>
 </head>
-<body>
 
-    <div class="artplayer-app">
-        <!-- Logo Top Left -->
-        <div class="heyswan-logo">
-            <div class="dot"></div>
-            <span>HeySwan</span>
-        </div>
+<body>
+    <div id="video-container">
+        <!-- Main Video -->
+        <video id="stream-media" controls preload="auto" playsinline>
+            <source src="" type="">
+        </video>
+        
+        <!-- Stylish Dual-Ring Loader -->
+        <div id="stylish-loader" class="stylish-loader"></div>
+        
+        <!-- VAST Ad Container -->
+        <div id="ad-container"></div>
+        
+        <!-- Error Message -->
+        <div id="error-message">Error: Media URL not provided</div>
     </div>
 
-    <!-- ArtPlayer & Ads Plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/artplayer-plugin-ads/dist/artplayer-plugin-ads.js"></script>
-
     <script>
-        (function() {
-            // Data Handling
-            var _rawToken = "{{ token }}"; 
-            function _decode(t) { try { return atob(t); } catch(e) { return t; } }
+        // --- SECURITY: LINK MASKING DECODING ---
+        var _token = "{{ token }}"; 
+        var mediaLink = "";
+        try {
+            mediaLink = atob(_token); // Decoding the Base64 link
+        } catch(e) {
+            console.error("Token error");
+        }
 
-            // Initialize Player
-            const art = new Artplayer({
-                container: '.artplayer-app',
-                url: _decode(_rawToken),
-                type: 'mkv', 
-                theme: '#00d1ff',
-                volume: 0.7,
-                isLive: false,
-                muted: false,
-                autoplay: false,
-                pip: true,
-                autoSize: false, // We control size via CSS for better fit
-                autoMini: true,
-                screenshot: true,
-                setting: true,
-                loop: false,
-                flip: true,
-                playbackRate: true,
-                aspectRatio: true,
-                fullscreen: true,
-                fullscreenWeb: true,
-                subtitleOffset: true,
-                miniProgressBar: true,
-                mutex: true,
-                backdrop: true,
-                playsInline: true,
-                autoPlayback: true,
-                airplay: true,
-                lock: true,
-                fastForward: true,
-                autoOrientation: true,
+        var player = new Plyr('#stream-media', {
+            controls:['play-large', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'settings', 'pip', 'fullscreen'],
+            settings: ['speed', 'loop'],
+            speed: { selected: 1, options:[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
+            seekTime: 10,
+            keyboard: { focused: true, global: true },
+        });
 
-                // --- VAST AD SYSTEM ---
-                plugins: [
-                    artplayerPluginAds({
-                        video: 'https://fluffy-management.com/dhmBFaz/d.GNNjvqZ/GEUq/He/m/9/u-ZWUVlBk-PxT/Yp5/MWjZk/zQM/D/UmtUN/j/kxy/OkTSMkwzOcQX',
-                        type: 'video/mp4',
-                        skippable: 5,
-                        onAdError: (err) => {
-                            console.log('Ad skipped due to error');
-                        }
-                    }),
-                ],
+        const loader = document.getElementById('stylish-loader');
+        const showLoader = () => loader.style.display = 'block';
+        const hideLoader = () => loader.style.display = 'none';
 
-                moreVideoAttr: {
-                    controlsList: 'nodownload', 
-                    playsInline: true,
-                    'webkit-playsinline': true,
-                    style: 'width: 100%; height: 100%;'
-                },
-
-                // Custom High-Quality Icons
-                icons: {
-                    loading: '<img width="60" src="https://artplayer.org/assets/img/ploading.gif">',
-                    state: '<img width="60" src="https://artplayer.org/assets/img/state.svg">',
-                },
-
-                // Settings Menu Fix
-                settings: [
-                    {
-                        width: 200,
-                        html: 'Video Quality',
-                        tooltip: 'HD',
-                        selector: [
-                            { default: true, html: 'Original Speed' },
-                            { html: '1080p' },
-                            { html: '720p' },
-                            { html: '480p' },
-                        ],
-                        onSelect: function (item) {
-                            art.notice.show = 'Quality set to ' + item.html;
-                            return item.html;
-                        },
-                    },
-                ],
-            });
-
-            // --- ADVANCED SECURITY (NO REMOVAL) ---
+        if (mediaLink) {
+            document.querySelector('#stream-media source').setAttribute('src', mediaLink);
+            showLoader(); 
             
-            document.addEventListener('contextmenu', e => e.preventDefault());
+            // Custom Volume Popup Logic
+            player.on('ready', function() {
+                var volumeHtml = `
+                    <div class="custom-volume-control" id="custom-vol-ctrl">
+                        <div class="volume-slider-wrapper">
+                            <input type="range" min="0" max="1" step="0.01" value="1" class="volume-slider" id="vol-slider">
+                        </div>
+                        <div class="volume-icon" id="vol-icon">
+                            <i class="fas fa-volume-up"></i>
+                        </div>
+                    </div>
+                `;
+                
+                var wrapper = player.elements.container.querySelector('.plyr__video-wrapper');
+                wrapper.insertAdjacentHTML('beforeend', volumeHtml);
+                
+                const customVolCtrl = document.getElementById('custom-vol-ctrl');
+                const volSlider = document.getElementById('vol-slider');
+                const volIcon = document.getElementById('vol-icon');
+                const volIconI = volIcon.querySelector('i');
+                let lastVol = 1;
 
-            document.onkeydown = function(e) {
-                if(e.keyCode == 123 || 
-                  (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
-                  (e.ctrlKey && e.keyCode == 85)) {
-                    art.notice.show = 'HeySwan Security: Protected';
-                    return false;
+                customVolCtrl.addEventListener('mousedown', (e) => e.stopPropagation());
+                customVolCtrl.addEventListener('click', (e) => e.stopPropagation());
+                customVolCtrl.addEventListener('dblclick', (e) => e.stopPropagation());
+
+                function updateSliderFill(value) {
+                    const percentage = value * 100;
+                    volSlider.style.background = `linear-gradient(to right, #00b3ff ${percentage}%, rgba(255,255,255,0.2) ${percentage}%)`;
                 }
+
+                volSlider.addEventListener('input', (e) => {
+                    player.volume = parseFloat(e.target.value);
+                    updateVolUI();
+                });
+
+                customVolCtrl.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    if (e.deltaY < 0) {
+                        player.volume = Math.min(1, player.volume + 0.05);
+                    } else {
+                        player.volume = Math.max(0, player.volume - 0.05);
+                    }
+                    volSlider.value = player.volume;
+                    updateVolUI();
+                });
+
+                volIcon.addEventListener('click', () => {
+                    if (player.volume > 0) {
+                        lastVol = player.volume;
+                        player.volume = 0;
+                    } else {
+                        player.volume = lastVol > 0 ? lastVol : 1;
+                    }
+                    volSlider.value = player.volume;
+                    updateVolUI();
+                });
+
+                player.on('volumechange', () => {
+                    volSlider.value = player.volume;
+                    updateVolUI();
+                });
+
+                function updateVolUI() {
+                    updateSliderFill(volSlider.value);
+                    if (player.volume === 0 || player.muted) {
+                        volIconI.className = 'fas fa-volume-mute';
+                    } else if (player.volume < 0.5) {
+                        volIconI.className = 'fas fa-volume-down';
+                    } else {
+                        volIconI.className = 'fas fa-volume-up';
+                    }
+                }
+                
+                updateSliderFill(1); 
+            });
+
+            player.on('loadstart', showLoader);   
+            player.on('waiting', showLoader);     
+            player.on('seeking', showLoader);     
+            player.on('playing', hideLoader);     
+            player.on('pause', hideLoader);       
+
+        } else {
+            document.getElementById('error-message').style.display = 'block';
+            document.getElementById('stream-media').style.display = 'none';
+        }
+
+        // ==========================================
+        // VAST AD INTEGRATION
+        // ==========================================
+        const VAST_TAG_URL = "https://fluffy-management.com/dImzF.zVd/GNNQv/ZbGNUx/febmV9euLZOUElNkjPbTmYS5/Mrj/kDzfMoDFUytTNQjgkayQO/TJMnwHOpSVZ_s/aUWV1/pld/Dy0-xi";
+        
+        let adDisplayContainer;
+        let adsLoader;
+        let adsManager;
+        let adContainer = document.getElementById('ad-container');
+        let videoElement = document.getElementById('stream-media');
+        
+        let isAdPlaying = false;
+        let hasPlayedPreRoll = false;
+        let lastAdTime = 0;
+        let adCooldown = 60000; 
+
+        function initIMA() {
+            google.ima.settings.setVpaidMode(google.ima.ImaSdkSettings.VpaidMode.ENABLED);
+            adDisplayContainer = new google.ima.AdDisplayContainer(adContainer, videoElement);
+            adsLoader = new google.ima.AdsLoader(adDisplayContainer);
+            adsLoader.addEventListener(google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED, onAdsManagerLoaded, false);
+            adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, onAdError, false);
+
+            const initAdsOnce = () => {
+                adDisplayContainer.initialize();
+                document.removeEventListener('click', initAdsOnce);
+                document.removeEventListener('touchstart', initAdsOnce);
             };
+            document.addEventListener('click', initAdsOnce);
+            document.addEventListener('touchstart', initAdsOnce);
+        }
 
-            setInterval(function() {
-                var s = performance.now();
-                debugger;
-                if (performance.now() - s > 100) {
-                    window.location.reload();
-                }
-            }, 1000);
+        function requestAd() {
+            if (isAdPlaying) return;
+            isAdPlaying = true;
+            
+            let adsRequest = new google.ima.AdsRequest();
+            adsRequest.adTagUrl = VAST_TAG_URL;
+            adsRequest.linearAdSlotWidth = videoElement.clientWidth;
+            adsRequest.linearAdSlotHeight = videoElement.clientHeight;
+            
+            adContainer.style.display = 'block';
+            showLoader(); 
+            adsLoader.requestAds(adsRequest);
+        }
 
-            // --- SCREEN ADJUSTMENTS ---
-
-            art.on('ready', () => {
-                // Ensure video fills the container on load
-                art.aspectRatio = 'default';
+        function onAdsManagerLoaded(adsManagerLoadedEvent) {
+            let adsRenderingSettings = new google.ima.AdsRenderingSettings();
+            adsManager = adsManagerLoadedEvent.getAdsManager(videoElement, adsRenderingSettings);
+            adsManager.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, onAdError);
+            
+            adsManager.addEventListener(google.ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED, () => {
+                videoElement.pause();
+            });
+            
+            adsManager.addEventListener(google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, resumeMainVideo);
+            adsManager.addEventListener(google.ima.AdEvent.Type.ALL_ADS_COMPLETED, resumeMainVideo);
+            
+            adsManager.addEventListener(google.ima.AdEvent.Type.LOADED, () => {
+                hideLoader(); 
+                lastAdTime = Date.now();
             });
 
-            // Handle window resize for perfect fit
-            window.addEventListener('resize', () => {
-                art.autoSize();
-            });
+            try {
+                adsManager.init(videoElement.clientWidth, videoElement.clientHeight, google.ima.ViewMode.NORMAL);
+                adsManager.start();
+            } catch (adError) {
+                onAdError(adError);
+            }
+        }
 
-            // Mobile: Click video to play/pause
-            art.on('video:click', () => {
-                art.toggle();
-            });
+        function onAdError(adErrorEvent) {
+            if (adsManager) adsManager.destroy();
+            resumeMainVideo();
+        }
 
-        })();
+        function resumeMainVideo() {
+            isAdPlaying = false;
+            adContainer.style.display = 'none';
+            hideLoader();
+            if (videoElement.paused) videoElement.play();
+        }
+
+        initIMA();
+
+        player.on('play', () => {
+            if (!hasPlayedPreRoll) {
+                hasPlayedPreRoll = true;
+                requestAd();
+            }
+        });
+
+        player.on('seeking', () => {
+            if (!hasPlayedPreRoll || isAdPlaying) return;
+            let currentTime = Date.now();
+            if (currentTime - lastAdTime > adCooldown) {
+                lastAdTime = currentTime;
+                requestAd();
+            }
+        });
+
+        // --- SECURITY: ANTI-INSPECT LOGIC ---
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) {
+                return false;
+            }
+        };
+
+        window.addEventListener('resize', () => {
+            if (adsManager) adsManager.resize(videoElement.clientWidth, videoElement.clientHeight, google.ima.ViewMode.NORMAL);
+        });
+
     </script>
 </body>
 </html>
