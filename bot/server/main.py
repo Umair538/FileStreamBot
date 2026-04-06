@@ -10,12 +10,12 @@ from bot.modules.telegram import get_message, get_file_properties
 
 bp = Blueprint('main', __name__)
 
-# --- CONFIGURATION (Apne 4 Domains) ---
+# --- CONFIGURATION (Ensure domains are correct) ---
 ALLOWED_WEBSITES = [
     "heyswan.love", 
     "heyswan.site", 
-    "filmfanda.com", 
-    "bollyshow.org"
+    "moviesworld.com", 
+    "filmypunjab.net"
 ]
 
 @bp.route('/')
@@ -33,7 +33,7 @@ async def transmit_file(file_id):
     
     is_allowed = any(site in referer for site in ALLOWED_WEBSITES)
     if not is_allowed and bot_domain not in referer:
-        return abort(403, "Unauthorized Domain Access.")
+        return abort(403, "Unauthorized Domain.")
 
     file = await get_message(file_id) or abort(404)
     code = request.args.get('code') or abort(401)
@@ -44,13 +44,17 @@ async def transmit_file(file_id):
 
     file_name, file_size, mime_type = get_file_properties(file)
     
-    # HQ Fix: Force Video MIME if unknown
-    if not mime_type or mime_type == 'application/octet-stream':
-        mime_type = mimetypes.guess_type(file_name)[0] or 'video/mp4'
+    # FIX: Force correct MIME Type for HQ Playback
+    if not mime_type or 'octet-stream' in mime_type:
+        mime_guess = mimetypes.guess_type(file_name)[0]
+        mime_type = mime_guess if mime_guess else 'video/mp4'
+    
+    # MKV compatibility fix for browsers
+    if file_name.endswith('.mkv') and 'video' not in mime_type:
+        mime_type = 'video/webm' # Browsers often play MKV as webm tech
 
     start, end = 0, file_size - 1
-    # Optimized for Full HD: 3MB Chunks
-    chunk_size = 3 * 1024 * 1024 
+    chunk_size = 2 * 1024 * 1024 # 2MB chunking for stability
 
     if range_header:
         range_match = re_match(r'bytes=(\d+)-(\d*)', range_header)
@@ -67,25 +71,21 @@ async def transmit_file(file_id):
         'Content-Range': f'bytes {start}-{end}/{file_size}',
         'Accept-Ranges': 'bytes',
         'Content-Length': str(content_length),
-        'Access-Control-Allow-Origin': '*', # Necessary for HQ streaming
+        'Access-Control-Allow-Origin': '*',
         'X-Content-Type-Options': 'nosniff',
     }
     status_code = 206 if range_header else 200
 
     async def file_stream():
         bytes_streamed = 0
-        # Calculate start chunk
-        offset_chunks = start // (1024 * 1024 * 1) # Telegram side uses 1MB blocks
-        
+        offset_chunks = start // (1024 * 1024) 
         async for chunk in TelegramBot.stream_media(file, offset=offset_chunks):
             if bytes_streamed == 0:
-                trim = start % (1024 * 1024 * 1)
+                trim = start % (1024 * 1024)
                 if trim > 0: chunk = chunk[trim:]
-            
             remaining = content_length - bytes_streamed
             if remaining <= 0: break
             if len(chunk) > remaining: chunk = chunk[:remaining]
-            
             yield chunk
             bytes_streamed += len(chunk)
 
