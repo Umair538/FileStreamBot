@@ -3,121 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium HD Player</title>
-    
-    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+    <title>Premium Video Player</title>
+    <!-- Plyr CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
-        :root { --primary: #e50914; --bg: #000; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: sans-serif; }
-        
-        .video-js { width: 100% !important; height: 100vh !important; }
-        .vjs-matrix.video-js .vjs-big-play-button {
-            width: 80px; height: 80px; line-height: 80px; border-radius: 50%;
-            border: 2px solid var(--primary); background: rgba(0,0,0,0.5);
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 0 20px rgba(229, 9, 20, 0.4);
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
         }
-        .video-js .vjs-play-progress { background: var(--primary); }
-
-        /* Ad Overlay */
-        #ad-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px);
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 9999; text-align: center; color: white;
+        .container {
+            width: 100%;
+            max-width: 900px;
         }
-        .ad-card { background: #111; padding: 30px; border-radius: 20px; border: 1px solid var(--primary); max-width: 400px; width: 90%; }
-        .btn-resume { background: var(--primary); color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer; font-weight: bold; text-transform: uppercase; text-decoration: none; display: inline-block; margin-top: 20px; }
-        .skip-timer { margin-top: 15px; color: #777; font-size: 13px; }
+        /* Hide context menu to prevent "Copy Video Address" */
+        video {
+            width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
 
-    <div id="ad-overlay">
-        <div class="ad-card">
-            <i class="fas fa-play-circle fa-3x" style="color:var(--primary); margin-bottom:15px;"></i>
-            <h2>RESUME HD STREAM</h2>
-            <p>Support our sponsor to unlock 1080p Full HD playback. Your movie will resume automatically.</p>
-            <div id="btn-container">
-                <a href="https://youradlink.com" target="_blank" onclick="closeAd()" class="btn-resume">VISIT SPONSOR</a>
-            </div>
-            <div id="timer-box" class="skip-timer">Wait <span id="timer-sec" style="color:var(--primary)">5</span>s to skip...</div>
-        </div>
-    </div>
-
-    <video id="my-video" class="video-js vjs-matrix vjs-big-play-centered" controls preload="auto" playsinline>
-        <p class="vjs-no-js">JavaScript is required to view this video.</p>
+<div class="container">
+    <video id="player" playsinline controls disablePictureInPicture controlsList="nodownload">
+        <!-- Source is empty initially -->
     </video>
+</div>
 
-    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+<!-- Plyr JS -->
+<script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
 
-    <script>
-        (function() {
-            var _token = "{{ token }}";
-            var adShown = false;
-            var player;
+<script>
+    (function() {
+        // 1. Get the encoded token from Python (Base64)
+        var _0x5f21 = "{{ token }}"; 
 
-            function decode(t) { try { return atob(t); } catch(e) { return ""; } }
-            var videoUrl = decode(_token);
+        // 2. Decode the link only inside this protected function
+        function getSource() {
+            return atob(_0x5f21);
+        }
 
-            player = videojs('my-video', {
-                fluid: false,
-                autoplay: true,
-                playbackRates: [0.5, 1, 1.5, 2],
-                controlBar: { skipButtons: { forward: 10, backward: 10 } }
-            });
+        // 3. Initialize Player
+        const videoElement = document.getElementById('player');
+        const player = new Plyr(videoElement, {
+            controls: [
+                'play-large', 'play', 'progress', 'current-time', 
+                'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'
+            ],
+            keyboard: { focused: true, global: true }
+        });
 
-            // Set source with flexible type to avoid Code 4
-            player.src({
-                src: videoUrl,
-                type: videoUrl.includes('.mkv') ? 'video/webm' : 'video/mp4'
-            });
+        // 4. Inject original link dynamically
+        videoElement.src = getSource();
 
-            // Seek Ad Logic
-            player.on('seeking', function() {
-                if (!adShown) {
-                    adShown = true;
-                    player.pause();
-                    document.getElementById('ad-overlay').style.display = 'flex';
-                    let timeLeft = 5;
-                    let countdown = setInterval(() => {
-                        timeLeft--;
-                        document.getElementById('timer-sec').innerText = timeLeft;
-                        if (timeLeft <= 0) {
-                            clearInterval(countdown);
-                            document.getElementById('timer-box').style.display = 'none';
-                            document.getElementById('btn-container').innerHTML = '<button onclick="closeAd()" class="btn-resume">RESUME MOVIE</button>';
-                        }
-                    }, 1000);
-                }
-            });
+        // 5. Extra Security: Disable Right Click
+        document.addEventListener('contextmenu', event => event.preventDefault());
 
-            window.closeAd = function() {
-                document.getElementById('ad-overlay').style.display = 'none';
-                adShown = false;
-                player.play();
-                document.getElementById('timer-box').style.display = 'block';
-                document.getElementById('timer-sec').innerText = "5";
-            }
+        // 6. Protect from Inspect Element
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false; // F12
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // View Source
+        };
+    })();
+</script>
 
-            // Security
-            document.addEventListener('contextmenu', e => e.preventDefault());
-            document.onkeydown = function(e) {
-                if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 85))) return false;
-            };
-
-            // AUTO-RETRY LOGIC FOR CODE 4
-            player.on('error', function() {
-                var error = player.error();
-                if (error.code === 4) {
-                    console.log("Retrying with different MIME type...");
-                    player.src({ src: videoUrl, type: 'video/mp4' }); // Fallback retry
-                }
-            });
-
-        })();
-    </script>
 </body>
 </html>
