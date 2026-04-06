@@ -16,15 +16,24 @@ async def home():
 async def transmit_file(file_id):
     
     # --- ANTI-CHOR SECURITY (Download Route) ---
-    allowed_website = "heyswan.love"  # Yahan apni website ka naam daalein (e.g., hdmovies.com)
+    # Yahan aap apne 4 ya usse zyada domains add kar sakte hain
+    allowed_websites = [
+        "heyswan.love", 
+        "heyswan.site", 
+        "filmfanda.com", 
+        "domain4.org"
+    ]
     bot_domain = request.host
     
     referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
     
     if referer:
-        if allowed_website not in referer and bot_domain not in referer:
+        # Check if any of the allowed websites are in the referer
+        is_allowed = any(site in referer for site in allowed_websites)
+        if not is_allowed and bot_domain not in referer:
             return abort(403)
     else:
+        # Agar direct link open kare (no referer) toh block karega
         return abort(403)
     # --- SECURITY KHATAM ---
 
@@ -95,13 +104,20 @@ async def transmit_file(file_id):
 async def stream_file(file_id):
     
     # --- ANTI-CHOR SECURITY (Stream Player Route) ---
-    allowed_website = "heyswan.love"  # Yahan apni website ka naam daalein (e.g., hdmovies.com)
+    # Yahan bhi wahi domains list add karein
+    allowed_websites = [
+        "heyswan.love", 
+        "heyswan.site", 
+        "filmfanda.com", 
+        "domain4.org"
+    ]
     bot_domain = request.host
     
     referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
     
     if referer:
-        if allowed_website not in referer and bot_domain not in referer:
+        is_allowed = any(site in referer for site in allowed_websites)
+        if not is_allowed and bot_domain not in referer:
             return abort(403)
     else:
         return abort(403)
