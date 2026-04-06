@@ -12,8 +12,8 @@ bp = Blueprint('main', __name__)
 # --- CONFIGURATION (Apne 4 Domains Yahan Dalein) ---
 ALLOWED_WEBSITES = [
     "heyswan.love", 
-    "moviesworld.com", 
-    "filmypunjab.net", 
+    "heyswan.site", 
+    "filmfanda.com", 
     "bollyshow.org"
 ]
 
