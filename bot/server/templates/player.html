@@ -2,96 +2,237 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High Speed Movie Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HeySwan Premium Player</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            background-color: #000;
-            overflow: hidden;
+        /* CSS Variables based on your Screenshot Theme */
+        :root {
+            --bg-color: #0b1120; /* Dark Navy Blue from Screen */
+            --accent-color: #00d1ff; /* HeySwan Cyan Color */
+            --red-theme: #ff0000;
+            --text-main: #ffffff;
+            --glass-bg: rgba(11, 17, 32, 0.85);
         }
-        .artplayer-app {
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
             width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- ENTRANCE ANIMATION (Upar se niche aana) --- */
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .artplayer-app {
+            width: 100vw;
             height: 100vh;
+            background: #000;
+            position: relative;
+            animation: slideDown 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        /* --- PREMIUM WATERMARK (HeySwan Style) --- */
+        .heyswan-logo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+            background: var(--glass-bg);
+            padding: 10px 18px;
+            border-radius: 12px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 209, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .heyswan-logo span {
+            color: var(--accent-color);
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .heyswan-logo .live-dot {
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--accent-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- CUSTOM CONTROLS DESIGN --- */
+        .art-video-player { background-color: #000 !important; }
+
+        /* Seek Bar Color (Screenshot Match) */
+        .art-progress-played { background: var(--red-theme) !important; }
+        .art-progress-indicator { background: var(--red-theme) !important; box-shadow: 0 0 10px var(--red-theme); }
+        
+        /* Animated Buttons Logic */
+        .art-control {
+            transition: all 0.3s ease !important;
+        }
+        .art-control:hover {
+            transform: scale(1.2);
+            color: var(--accent-color) !important;
+        }
+
+        /* Earning Boost - Ad Skip Button Style */
+        .art-ads-skip {
+            background: var(--accent-color) !important;
+            color: #000 !important;
+            border-radius: 5px !important;
+            font-weight: bold !important;
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            .heyswan-logo { top: 10px; left: 10px; padding: 6px 12px; }
+            .heyswan-logo span { font-size: 14px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="artplayer-app"></div>
+    <!-- Main Container -->
+    <div class="artplayer-app">
+        <!-- HeySwan Watermark -->
+        <div class="heyswan-logo">
+            <div class="live-dot"></div>
+            <span>HeySwan</span>
+        </div>
+    </div>
 
-    <!-- ArtPlayer Library -->
+    <!-- ArtPlayer Library & Ads Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/artplayer-plugin-ads/dist/artplayer-plugin-ads.js"></script>
 
     <script>
         (function() {
-            // Masked Token from Python
+            // Secure Token Decoding
             var _rawToken = "{{ token }}"; 
-
-            // Function to decode link just before play
-            function _decodeSource(token) {
-                try {
-                    return atob(token);
-                } catch(e) {
-                    return "";
-                }
-            }
+            function _decode(t) { try { return atob(t); } catch(e) { return t; } }
 
             // Initialize ArtPlayer
             const art = new Artplayer({
                 container: '.artplayer-app',
-                url: _decodeSource(_rawToken),
-                type: 'mkv', // Support common movie formats
-                title: 'Streaming Movie...',
-                poster: '', 
+                url: _decode(_rawToken),
+                type: 'mkv', 
+                theme: '#00d1ff', // Cyan theme
                 volume: 0.7,
-                isLive: false,
-                muted: false,
-                autoplay: false,
                 pip: true,
-                autoSize: true,
-                autoMini: true,
                 screenshot: true,
                 setting: true,
-                loop: false,
-                flip: true,
-                playbackRate: true,
-                aspectRatio: true,
                 fullscreen: true,
                 fullscreenWeb: true,
-                subtitleOffset: true,
                 miniProgressBar: true,
                 mutex: true,
                 backdrop: true,
                 playsInline: true,
-                autoPlayback: true,
-                airplay: true,
-                theme: '#ff0000',
+                autoOrientation: true,
+                lock: true,
+                fastForward: true,
+
+                // --- VAST AD INTEGRATION (Earning Strategy) ---
+                plugins: [
+                    artplayerPluginAds({
+                        // HilltopAds VAST URL
+                        video: 'https://fluffy-management.com/dhmBFaz/d.GNNjvqZ/GEUq/He/m/9/u-ZWUVlBk-PxT/Yp5/MWjZk/zQM/D/UmtUN/j/kxy/OkTSMkwzOcQX',
+                        
+                        // Strategy: Preroll (Video shuru hone se pehle)
+                        type: 'video/mp4', // VAST usually handles this automatically
+                        
+                        // Earning Feature: User ko 5 sec tak ad dekhni padegi
+                        skippable: 5, 
+                        
+                        // Agar ad block ho jaye toh bhi player chale
+                        onAdError: (err) => {
+                            console.warn('Ad Blocked or Error:', err);
+                        }
+                    }),
+                ],
+
                 moreVideoAttr: {
-                    controlsList: 'nodownload', // Browser ka download button hide karega
+                    controlsList: 'nodownload', 
                     playsInline: true,
                 },
-                settings: [
-                    {
-                        width: 200,
-                        html: 'Video Quality',
-                        tooltip: 'Original',
-                    },
-                ],
+
+                icons: {
+                    loading: '<img width="60" src="https://artplayer.org/assets/img/ploading.gif">',
+                    state: '<img width="60" src="https://artplayer.org/assets/img/state.svg">',
+                },
             });
 
-            // --- SECURITY: Disable Right Click & Inspect ---
+            // --- SECURITY SYSTEM (NO REMOVAL) ---
+
+            // 1. Disable Right Click
             document.addEventListener('contextmenu', e => e.preventDefault());
+
+            // 2. Block Inspect Keys
             document.onkeydown = function(e) {
-                if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) {
+                if(e.keyCode == 123 || 
+                  (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || 
+                  (e.ctrlKey && e.keyCode == 85)) {
+                    art.notice.show = 'HeySwan Security: Protected';
                     return false;
                 }
             };
 
-            // Player Ready
+            // 3. Anti-Debugger (Aggressive)
+            setInterval(function() {
+                var start = performance.now();
+                debugger;
+                if (performance.now() - start > 100) {
+                    window.location.reload();
+                }
+            }, 1000);
+
+            // --- PLAYER EVENTS ---
             art.on('ready', () => {
-                console.info('Player is ready for movie streaming');
+                art.notice.show = 'Welcome to HeySwan Premium';
+            });
+
+            // Mobile click to play/pause
+            art.on('video:click', () => {
+                art.toggle();
             });
 
         })();
