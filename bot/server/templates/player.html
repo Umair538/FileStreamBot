@@ -3,144 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Full HD Premium Streaming</title>
+    <title>Premium HD Player</title>
+    
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #000; overflow: hidden;
-            font-family: 'Segoe UI', Roboto, sans-serif;
+        :root { --primary: #e50914; --bg: #000; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: sans-serif; }
+        
+        .video-js { width: 100% !important; height: 100vh !important; }
+        .vjs-matrix.video-js .vjs-big-play-button {
+            width: 80px; height: 80px; line-height: 80px; border-radius: 50%;
+            border: 2px solid var(--primary); background: rgba(0,0,0,0.5);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px rgba(229, 9, 20, 0.4);
         }
-        .artplayer-app { width: 100%; height: 100vh; }
+        .video-js .vjs-play-progress { background: var(--primary); }
 
-        /* YouTube Ad Style Overlay */
+        /* Ad Overlay */
         #ad-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px);
             display: none; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 9999;
+            z-index: 9999; text-align: center; color: white;
         }
-        .ad-box {
-            background: #111; padding: 40px; border-radius: 15px; border: 2px solid #e50914;
-            text-align: center; max-width: 400px; color: white; box-shadow: 0 0 20px #e5091466;
-        }
-        .ad-btn {
-            background: #e50914; color: white; border: none; padding: 15px 30px;
-            border-radius: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase;
-            text-decoration: none; display: inline-block; margin-top: 20px; transition: 0.3s;
-        }
-        .ad-btn:hover { background: #ff1a1a; transform: scale(1.05); }
-        .skip-timer { margin-top: 15px; color: #888; font-size: 13px; letter-spacing: 1px; }
+        .ad-card { background: #111; padding: 30px; border-radius: 20px; border: 1px solid var(--primary); max-width: 400px; width: 90%; }
+        .btn-resume { background: var(--primary); color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer; font-weight: bold; text-transform: uppercase; text-decoration: none; display: inline-block; margin-top: 20px; }
+        .skip-timer { margin-top: 15px; color: #777; font-size: 13px; }
     </style>
 </head>
 <body>
 
-    <!-- YouTube Style Ad -->
     <div id="ad-overlay">
-        <div class="ad-box">
-            <h2 style="color:#e50914"><i class="fas fa-hd"></i> FULL HD UNLOCKED</h2>
-            <p>You are watching in Premium High Definition. Please support our sponsors to keep it free.</p>
-            <a href="https://youradlink.com" target="_blank" onclick="closeAd()" class="ad-btn">Support & Continue</a>
-            <div id="skip-container" class="skip-timer">Resuming Full HD in <span id="timer-sec">5</span>s...</div>
+        <div class="ad-card">
+            <i class="fas fa-play-circle fa-3x" style="color:var(--primary); margin-bottom:15px;"></i>
+            <h2>RESUME HD STREAM</h2>
+            <p>Support our sponsor to unlock 1080p Full HD playback. Your movie will resume automatically.</p>
+            <div id="btn-container">
+                <a href="https://youradlink.com" target="_blank" onclick="closeAd()" class="btn-resume">VISIT SPONSOR</a>
+            </div>
+            <div id="timer-box" class="skip-timer">Wait <span id="timer-sec" style="color:var(--primary)">5</span>s to skip...</div>
         </div>
     </div>
 
-    <!-- Main Player Container -->
-    <div class="artplayer-app"></div>
+    <video id="my-video" class="video-js vjs-matrix vjs-big-play-centered" controls preload="auto" playsinline>
+        <p class="vjs-no-js">JavaScript is required to view this video.</p>
+    </video>
 
-    <!-- Video Support Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dashjs/dist/dash.all.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 
     <script>
         (function() {
-            var _token = "{{ token }}"; 
-            var adActive = false;
+            var _token = "{{ token }}";
+            var adShown = false;
+            var player;
 
             function decode(t) { try { return atob(t); } catch(e) { return ""; } }
             var videoUrl = decode(_token);
 
-            const art = new Artplayer({
-                container: '.artplayer-app',
-                url: videoUrl,
-                title: 'Full HD Movie Streaming',
-                theme: '#e50914',
+            player = videojs('my-video', {
+                fluid: false,
                 autoplay: true,
-                pip: true,
-                screenshot: true,
-                setting: true,
-                fullscreen: true,
-                fullscreenWeb: true,
-                playbackRate: true,
-                aspectRatio: true,
-                autoPlayback: true,
-                airplay: true,
-                lock: true,
-                fastForward: true,
-                autoSize: true,
-                moreVideoAttr: {
-                    controlsList: 'nodownload',
-                    playsInline: true,
-                    crossOrigin: 'anonymous',
-                },
-                // Advanced HQ Playback Logic
-                customType: {
-                    m3u8: function(video, url) {
-                        if (Hls.isSupported()) {
-                            const hls = new Hls();
-                            hls.loadSource(url);
-                            hls.attachMedia(video);
-                        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                            video.src = url;
+                playbackRates: [0.5, 1, 1.5, 2],
+                controlBar: { skipButtons: { forward: 10, backward: 10 } }
+            });
+
+            // Set source with flexible type to avoid Code 4
+            player.src({
+                src: videoUrl,
+                type: videoUrl.includes('.mkv') ? 'video/webm' : 'video/mp4'
+            });
+
+            // Seek Ad Logic
+            player.on('seeking', function() {
+                if (!adShown) {
+                    adShown = true;
+                    player.pause();
+                    document.getElementById('ad-overlay').style.display = 'flex';
+                    let timeLeft = 5;
+                    let countdown = setInterval(() => {
+                        timeLeft--;
+                        document.getElementById('timer-sec').innerText = timeLeft;
+                        if (timeLeft <= 0) {
+                            clearInterval(countdown);
+                            document.getElementById('timer-box').style.display = 'none';
+                            document.getElementById('btn-container').innerHTML = '<button onclick="closeAd()" class="btn-resume">RESUME MOVIE</button>';
                         }
-                    },
-                    mpd: function(video, url) {
-                        var player = dashjs.MediaPlayer().create();
-                        player.initialize(video, url, true);
-                    }
-                },
+                    }, 1000);
+                }
             });
-
-            // --- YOUTUBE STYLE SEEK AD ---
-            art.on('video:seeking', () => {
-                if (!adActive) { showAd(); }
-            });
-
-            function showAd() {
-                adActive = true;
-                art.pause();
-                document.getElementById('ad-overlay').style.display = 'flex';
-                let timeLeft = 5;
-                let timer = setInterval(() => {
-                    timeLeft--;
-                    document.getElementById('timer-sec').innerText = timeLeft;
-                    if (timeLeft <= 0) {
-                        clearInterval(timer);
-                        document.getElementById('skip-container').innerHTML = '<button onclick="closeAd()" class="ad-btn" style="padding:10px 20px; font-size:12px;">Resume Movie</button>';
-                    }
-                }, 1000);
-            }
 
             window.closeAd = function() {
                 document.getElementById('ad-overlay').style.display = 'none';
-                adActive = false;
-                art.play();
-                document.getElementById('skip-container').innerHTML = 'Resuming Full HD in <span id="timer-sec">5</span>s...';
+                adShown = false;
+                player.play();
+                document.getElementById('timer-box').style.display = 'block';
+                document.getElementById('timer-sec').innerText = "5";
             }
 
-            // --- SECURITY ---
+            // Security
             document.addEventListener('contextmenu', e => e.preventDefault());
             document.onkeydown = function(e) {
-                if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 85 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) {
-                    return false;
-                }
+                if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 85))) return false;
             };
 
-            // Auto-hide mouse for immersion
-            art.on('view', () => {
-                art.notice.show = 'Enjoy Full HD Experience';
+            // AUTO-RETRY LOGIC FOR CODE 4
+            player.on('error', function() {
+                var error = player.error();
+                if (error.code === 4) {
+                    console.log("Retrying with different MIME type...");
+                    player.src({ src: videoUrl, type: 'video/mp4' }); // Fallback retry
+                }
             });
+
         })();
     </script>
 </body>
