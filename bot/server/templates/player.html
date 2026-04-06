@@ -3,61 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Movie Player</title>
+    <title>Full HD Premium Streaming</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Global Styles */
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #000; color: #fff;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
+            background-color: #000; overflow: hidden;
+            font-family: 'Segoe UI', Roboto, sans-serif;
         }
+        .artplayer-app { width: 100%; height: 100vh; }
 
-        /* Player Container */
-        .artplayer-app { 
-            width: 100%; 
-            height: 100vh; 
-        }
-
-        /* YouTube-Style Ad Overlay */
+        /* YouTube Ad Style Overlay */
         #ad-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             display: none; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 2000;
+            z-index: 9999;
         }
         .ad-box {
-            background: #111; padding: 40px; border-radius: 20px; border: 1px solid #e50914;
-            text-align: center; max-width: 450px; box-shadow: 0 0 30px rgba(229, 9, 20, 0.4);
+            background: #111; padding: 40px; border-radius: 15px; border: 2px solid #e50914;
+            text-align: center; max-width: 400px; color: white; box-shadow: 0 0 20px #e5091466;
         }
-        .ad-box h2 { color: #e50914; margin-bottom: 15px; font-size: 24px; text-transform: uppercase; }
-        .ad-box p { color: #eee; font-size: 15px; margin-bottom: 25px; line-height: 1.5; }
         .ad-btn {
-            background: #e50914; color: white; border: none; padding: 14px 30px;
+            background: #e50914; color: white; border: none; padding: 15px 30px;
             border-radius: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase;
-            text-decoration: none; display: inline-block; transition: 0.3s;
+            text-decoration: none; display: inline-block; margin-top: 20px; transition: 0.3s;
         }
         .ad-btn:hover { background: #ff1a1a; transform: scale(1.05); }
-        .skip-timer { margin-top: 20px; color: #999; font-size: 13px; font-weight: bold; }
+        .skip-timer { margin-top: 15px; color: #888; font-size: 13px; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <!-- Ad Overlay (YouTube Style) -->
+    <!-- YouTube Style Ad -->
     <div id="ad-overlay">
         <div class="ad-box">
-            <h2><i class="fas fa-play-circle"></i> Unlock Streaming</h2>
-            <p>To continue watching in high quality, please support our sponsors. The movie will resume in a few seconds.</p>
-            <a href="https://fluffy-management.com/dam.FhzTdfGyN/vDZ/GhUP/EeHm/9SuyZBUJlkkAP_T/Yk5MMdjUkQz_MaDLUAt/NljKkvypOuTSM/wnO/QI" target="_blank" onclick="closeAd()" class="ad-btn">Visit & Resume Movie</a>
-            <div id="skip-container" class="skip-timer">Video will resume after <span id="timer-sec">5</span>s...</div>
+            <h2 style="color:#e50914"><i class="fas fa-hd"></i> FULL HD UNLOCKED</h2>
+            <p>You are watching in Premium High Definition. Please support our sponsors to keep it free.</p>
+            <a href="https://youradlink.com" target="_blank" onclick="closeAd()" class="ad-btn">Support & Continue</a>
+            <div id="skip-container" class="skip-timer">Resuming Full HD in <span id="timer-sec">5</span>s...</div>
         </div>
     </div>
 
-    <!-- Video Player -->
+    <!-- Main Player Container -->
     <div class="artplayer-app"></div>
 
-    <!-- ArtPlayer Library -->
+    <!-- Video Support Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dashjs/dist/dash.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
 
     <script>
@@ -65,16 +58,15 @@
             var _token = "{{ token }}"; 
             var adActive = false;
 
-            // Link Decoding Function
-            function decodeSource(t) { try { return atob(t); } catch(e) { return ""; } }
+            function decode(t) { try { return atob(t); } catch(e) { return ""; } }
+            var videoUrl = decode(_token);
 
             const art = new Artplayer({
                 container: '.artplayer-app',
-                url: decodeSource(_token),
-                type: 'mkv',
-                title: 'Premium Movie Streaming',
-                theme: '#e50914', // Netflix Red Theme
-                autoplay: false,
+                url: videoUrl,
+                title: 'Full HD Movie Streaming',
+                theme: '#e50914',
+                autoplay: true,
                 pip: true,
                 screenshot: true,
                 setting: true,
@@ -90,58 +82,65 @@
                 moreVideoAttr: {
                     controlsList: 'nodownload',
                     playsInline: true,
-                }
+                    crossOrigin: 'anonymous',
+                },
+                // Advanced HQ Playback Logic
+                customType: {
+                    m3u8: function(video, url) {
+                        if (Hls.isSupported()) {
+                            const hls = new Hls();
+                            hls.loadSource(url);
+                            hls.attachMedia(video);
+                        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                            video.src = url;
+                        }
+                    },
+                    mpd: function(video, url) {
+                        var player = dashjs.MediaPlayer().create();
+                        player.initialize(video, url, true);
+                    }
+                },
             });
 
-            // --- YOUTUBE-STYLE SEEK AD LOGIC ---
-            // Jab user movie forward ya seek karega tab ad show hoga
+            // --- YOUTUBE STYLE SEEK AD ---
             art.on('video:seeking', () => {
-                if (!adActive) {
-                    showSeekAd();
-                }
+                if (!adActive) { showAd(); }
             });
 
-            function showSeekAd() {
+            function showAd() {
                 adActive = true;
-                art.pause(); // Movie pause ho jayegi
-                
-                const overlay = document.getElementById('ad-overlay');
-                const timerText = document.getElementById('timer-sec');
-                const skipContainer = document.getElementById('skip-container');
-                
-                overlay.style.display = 'flex';
-                
+                art.pause();
+                document.getElementById('ad-overlay').style.display = 'flex';
                 let timeLeft = 5;
                 let timer = setInterval(() => {
                     timeLeft--;
-                    timerText.innerText = timeLeft;
+                    document.getElementById('timer-sec').innerText = timeLeft;
                     if (timeLeft <= 0) {
                         clearInterval(timer);
-                        skipContainer.innerHTML = '<button onclick="closeAd()" class="ad-btn" style="background:#333; font-size:12px; padding:10px 20px;">Click to Resume Movie</button>';
+                        document.getElementById('skip-container').innerHTML = '<button onclick="closeAd()" class="ad-btn" style="padding:10px 20px; font-size:12px;">Resume Movie</button>';
                     }
                 }, 1000);
             }
 
-            // Function to close ad and play movie
             window.closeAd = function() {
                 document.getElementById('ad-overlay').style.display = 'none';
                 adActive = false;
                 art.play();
-                // Reset timer for next time
-                document.getElementById('skip-container').innerHTML = 'Video will resume after <span id="timer-sec">5</span>s...';
-            };
+                document.getElementById('skip-container').innerHTML = 'Resuming Full HD in <span id="timer-sec">5</span>s...';
+            }
 
-            // --- SECURITY PROTECTIONS ---
-            // Disable Right Click
+            // --- SECURITY ---
             document.addEventListener('contextmenu', e => e.preventDefault());
-            
-            // Disable Inspect Element keys
             document.onkeydown = function(e) {
-                if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) {
+                if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 85 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) {
                     return false;
                 }
             };
 
+            // Auto-hide mouse for immersion
+            art.on('view', () => {
+                art.notice.show = 'Enjoy Full HD Experience';
+            });
         })();
     </script>
 </body>
