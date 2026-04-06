@@ -9,12 +9,12 @@ from bot.modules.telegram import get_message, get_file_properties
 
 bp = Blueprint('main', __name__)
 
-# --- CONFIGURATION (Multiple Domains) ---
+# --- CONFIGURATION (Apne 4 Domains Yahan Dalein) ---
 ALLOWED_WEBSITES = [
     "heyswan.love", 
     "heyswan.site", 
     "filmfanda.com", 
-    "domain4.org"
+    "bollyshow.org"
 ]
 
 @bp.route('/')
@@ -25,16 +25,18 @@ async def home():
 async def transmit_file(file_id):
     # --- STRICT REFERER SECURITY ---
     bot_domain = request.host
-    referer = request.headers.get("Referer") or request.headers.get("Origin")
+    referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
     
+    # 1. Direct access block (Referer check)
     if not referer:
-        return abort(403, "Direct access is prohibited.")
+        return abort(403, "Direct access is strictly prohibited.")
     
+    # 2. Check if referer is in allowed list
     is_allowed = any(site in referer for site in ALLOWED_WEBSITES)
     if not is_allowed and bot_domain not in referer:
-        return abort(403, "Unauthorized access.")
-    # --- SECURITY END ---
+        return abort(403, "Unauthorized Domain Access.")
 
+    # --- TRANSMIT LOGIC ---
     file = await get_message(file_id) or abort(404)
     code = request.args.get('code') or abort(401)
     range_header = request.headers.get('Range')
@@ -65,6 +67,7 @@ async def transmit_file(file_id):
         'Accept-Ranges': 'bytes',
         'Content-Length': str(total_bytes_to_stream),
         'X-Content-Type-Options': 'nosniff',
+        'Access-Control-Allow-Origin': '*', # Allows player to fetch data
     }
     status_code = 206 if range_header else 200
 
@@ -86,18 +89,18 @@ async def transmit_file(file_id):
 
 @bp.route('/stream/<int:file_id>')
 async def stream_file(file_id):
-    # --- STRICT REFERER SECURITY ---
+    # --- PLAYER SECURITY ---
     bot_domain = request.host
-    referer = request.headers.get("Referer") or request.headers.get("Origin")
+    referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
+    
     if not referer: return abort(403)
     is_allowed = any(site in referer for site in ALLOWED_WEBSITES)
     if not is_allowed and bot_domain not in referer: return abort(403)
 
     code = request.args.get('code') or abort(401)
     
-    # --- ORIGINAL LINK KO ENCRYPT (BASE64) KARNA ---
+    # ORIGINAL LINK ENCRYPTION
     original_link = f'{Server.BASE_URL}/dl/{file_id}?code={code}'
-    masked_link = base64.b64encode(original_link.encode("utf-8")).decode("utf-8")
+    masked_token = base64.b64encode(original_link.encode("utf-8")).decode("utf-8")
     
-    # Template ko masked link bhej rahe hain
-    return await render_template('player.html', token=masked_link)
+    return await render_template('player.html', token=masked_token)
