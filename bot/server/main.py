@@ -2,7 +2,6 @@ from quart import Blueprint, Response, request, render_template, redirect
 from math import ceil
 from re import match as re_match
 import base64
-import mimetypes
 from .error import abort
 from bot import TelegramBot
 from bot.config import Telegram, Server
@@ -10,12 +9,12 @@ from bot.modules.telegram import get_message, get_file_properties
 
 bp = Blueprint('main', __name__)
 
-# --- CONFIGURATION (Ensure domains are correct) ---
+# --- CONFIGURATION (Multiple Domains) ---
 ALLOWED_WEBSITES = [
     "heyswan.love", 
     "heyswan.site", 
-    "moviesworld.com", 
-    "filmypunjab.net"
+    "filmfanda.com", 
+    "domain4.org"
 ]
 
 @bp.route('/')
@@ -26,14 +25,15 @@ async def home():
 async def transmit_file(file_id):
     # --- STRICT REFERER SECURITY ---
     bot_domain = request.host
-    referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
+    referer = request.headers.get("Referer") or request.headers.get("Origin")
     
     if not referer:
         return abort(403, "Direct access is prohibited.")
     
     is_allowed = any(site in referer for site in ALLOWED_WEBSITES)
     if not is_allowed and bot_domain not in referer:
-        return abort(403, "Unauthorized Domain.")
+        return abort(403, "Unauthorized access.")
+    # --- SECURITY END ---
 
     file = await get_message(file_id) or abort(404)
     code = request.args.get('code') or abort(401)
@@ -43,18 +43,8 @@ async def transmit_file(file_id):
         abort(403)
 
     file_name, file_size, mime_type = get_file_properties(file)
-    
-    # FIX: Force correct MIME Type for HQ Playback
-    if not mime_type or 'octet-stream' in mime_type:
-        mime_guess = mimetypes.guess_type(file_name)[0]
-        mime_type = mime_guess if mime_guess else 'video/mp4'
-    
-    # MKV compatibility fix for browsers
-    if file_name.endswith('.mkv') and 'video' not in mime_type:
-        mime_type = 'video/webm' # Browsers often play MKV as webm tech
-
     start, end = 0, file_size - 1
-    chunk_size = 2 * 1024 * 1024 # 2MB chunking for stability
+    chunk_size = 1 * 1024 * 1024 
 
     if range_header:
         range_match = re_match(r'bytes=(\d+)-(\d*)', range_header)
@@ -64,44 +54,50 @@ async def transmit_file(file_id):
             if start > end or start >= file_size:
                 abort(416, 'Requested range not satisfiable')
 
-    content_length = end - start + 1
+    offset_chunks = start // chunk_size
+    total_bytes_to_stream = end - start + 1
+    chunks_to_stream = ceil(total_bytes_to_stream / chunk_size)
+
     headers = {
         'Content-Type': mime_type,
-        'Content-Disposition': f'inline; filename="{file_name}"',
+        'Content-Disposition': f'attachment; filename="{file_name}"',
         'Content-Range': f'bytes {start}-{end}/{file_size}',
         'Accept-Ranges': 'bytes',
-        'Content-Length': str(content_length),
-        'Access-Control-Allow-Origin': '*',
+        'Content-Length': str(total_bytes_to_stream),
         'X-Content-Type-Options': 'nosniff',
     }
     status_code = 206 if range_header else 200
 
     async def file_stream():
         bytes_streamed = 0
-        offset_chunks = start // (1024 * 1024) 
-        async for chunk in TelegramBot.stream_media(file, offset=offset_chunks):
-            if bytes_streamed == 0:
-                trim = start % (1024 * 1024)
-                if trim > 0: chunk = chunk[trim:]
-            remaining = content_length - bytes_streamed
-            if remaining <= 0: break
-            if len(chunk) > remaining: chunk = chunk[:remaining]
+        chunk_index = 0
+        async for chunk in TelegramBot.stream_media(file, offset=offset_chunks, limit=chunks_to_stream):
+            if chunk_index == 0: 
+                trim_start = start % chunk_size
+                if trim_start > 0: chunk = chunk[trim_start:]
+            remaining_bytes = total_bytes_to_stream - bytes_streamed
+            if remaining_bytes <= 0: break
+            if len(chunk) > remaining_bytes: chunk = chunk[:remaining_bytes]
             yield chunk
             bytes_streamed += len(chunk)
+            chunk_index += 1
 
     return Response(file_stream(), headers=headers, status=status_code)
 
 @bp.route('/stream/<int:file_id>')
 async def stream_file(file_id):
-    # --- PLAYER SECURITY ---
+    # --- STRICT REFERER SECURITY ---
     bot_domain = request.host
-    referer = request.headers.get("Referer") or request.headers.get("Origin") or ""
+    referer = request.headers.get("Referer") or request.headers.get("Origin")
     if not referer: return abort(403)
     is_allowed = any(site in referer for site in ALLOWED_WEBSITES)
     if not is_allowed and bot_domain not in referer: return abort(403)
 
     code = request.args.get('code') or abort(401)
-    original_link = f'{Server.BASE_URL}/dl/{file_id}?code={code}'
-    masked_token = base64.b64encode(original_link.encode("utf-8")).decode("utf-8")
     
-    return await render_template('player.html', token=masked_token)
+    # --- ORIGINAL LINK KO ENCRYPT (BASE64) KARNA ---
+    original_link = f'{Server.BASE_URL}/dl/{file_id}?code={code}'
+    masked_link = base64.b64encode(original_link.encode("utf-8")).decode("utf-8")
+    
+    # Template ko masked link bhej rahe hain
+    return await render_template('player.html', token=masked_link)
