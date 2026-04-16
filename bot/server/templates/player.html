@@ -115,7 +115,8 @@
     <script>
         // --- 1. RESUME SYSTEM DATA ---
         var urlParams = new URLSearchParams(window.location.search);
-        var startTime = parseFloat(urlParams.get('t')) || 0; // URL se 't' (seconds) uthana
+        var startTime = parseFloat(urlParams.get('t')) || 0; // Resume time
+        var shouldAutoPlay = urlParams.get('autoplay') === '1'; // AutoPlay check
 
         // --- 2. SECURITY & DECODING ---
         var _token = "{{ token }}"; 
@@ -127,6 +128,7 @@
             controls:['play-large', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'settings', 'pip', 'fullscreen'],
             settings: ['speed', 'loop'],
             seekTime: 10,
+            autoplay: shouldAutoPlay
         });
 
         const loader = document.getElementById('stylish-loader');
@@ -138,10 +140,13 @@
             showLoader(); 
             
             player.on('ready', function() {
-                // AUTO-RESUME LOGIC
+                // --- RESUME LOGIC ---
                 if (startTime > 0) {
                     player.currentTime = startTime;
-                    setTimeout(() => { player.play(); }, 500);
+                }
+                // --- AUTO PLAY LOGIC ---
+                if (shouldAutoPlay) {
+                    player.play();
                 }
 
                 // --- 4. VOLUME CONTROL UI ---
@@ -165,14 +170,12 @@
             // --- 5. PROGRESS TRACKING (SEND TO PARENT WEBSITE) ---
             setInterval(function() {
                 if (player.playing) {
-                    // Website ko exact time bhejna
                     window.parent.postMessage({
                         type: 'HS_VIDEO_PROGRESS',
-                        time: player.currentTime,
-                        duration: player.duration
+                        time: player.currentTime
                     }, '*');
                 }
-            }, 5000); // Har 5 second baad update
+            }, 5000);
 
             player.on('loadstart', showLoader);   
             player.on('playing', hideLoader);     
@@ -182,7 +185,7 @@
             document.getElementById('error-message').style.display = 'block';
         }
 
-        // --- 6. VAST ADS INTEGRATION ---
+        // --- 6. VAST ADS INTEGRATION (Aapka purana code) ---
         const VAST_TAG_URL = "https://fluffy-management.com/dImzF.zVd/GNNQv/ZbGNUx/febmV9euLZOUElNkjPbTmYS5/Mrj/kDzfMoDFUytTNQjgkayQO/TJMnwHOpSVZ_s/aUWV1/pld/Dy0-xi";
         let adsLoader, adsManager, adContainer = document.getElementById('ad-container'), videoElement = document.getElementById('stream-media');
         let hasPlayedPreRoll = false;
@@ -216,7 +219,6 @@
         // --- 7. SECURITY ---
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = (e) => { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73)) return false; };
-
     </script>
 </body>
 </html>
